@@ -1,0 +1,24 @@
+{
+  "name": "erc8004-identity-viewer",
+  "version": "1.0.0",
+  "description": "Static browser viewer and zero-dependency ES module for ERC-8004 agent identities and reputation registries on Base and Base Sepolia.",
+  "type": "module",
+  "main": "./viewer.js",
+  "exports": {
+    ".": "./viewer.js",
+    "./viewer.js": "./viewer.js",
+    "./config.js": "./config.js"
+  },
+  "scripts": {
+    "test": "node --test"
+  },
+  "keywords": [
+    "erc-8004",
+    "base",
+    "base-sepolia",
+    "agent-identity",
+    "kognai"
+  ],
+  "author": "195440",
+  "license": "MIT"
+}

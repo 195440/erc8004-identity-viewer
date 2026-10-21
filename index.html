@@ -1,0 +1,573 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>ERC-8004 Identity Viewer</title>
+  <style>
+    :root {
+      color-scheme: light dark;
+      --bg: #f6f8fa;
+      --surface: #ffffff;
+      --surface-alt: #f0f3f6;
+      --text: #0f172a;
+      --muted: #475569;
+      --border: #cbd5e1;
+      --accent: #0284c7;
+      --accent-fg: #ffffff;
+      --ok-bg: #dcfce7;
+      --ok-fg: #166534;
+      --warn-bg: #fef9c3;
+      --warn-fg: #854d0e;
+      --err-bg: #fee2e2;
+      --err-fg: #991b1b;
+      --mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      --sans: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    }
+
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg: #0b0f19;
+        --surface: #111827;
+        --surface-alt: #1e293b;
+        --text: #f8fafc;
+        --muted: #94a3b8;
+        --border: #334155;
+        --accent: #38bdf8;
+        --accent-fg: #082f49;
+        --ok-bg: #052e16;
+        --ok-fg: #86efac;
+        --warn-bg: #422006;
+        --warn-fg: #fde047;
+        --err-bg: #450a0a;
+        --err-fg: #fca5a5;
+      }
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      padding: 0;
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--sans);
+      line-height: 1.5;
+      min-width: 320px;
+    }
+
+    main {
+      max-width: 920px;
+      margin: 0 auto;
+      padding: 16px;
+    }
+
+    header {
+      margin-bottom: 16px;
+      padding-bottom: 12px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    h1 {
+      font-size: 1.35rem;
+      margin: 0 0 4px 0;
+    }
+
+    p.subtitle {
+      margin: 0;
+      font-size: 0.9rem;
+      color: var(--muted);
+    }
+
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 16px;
+      margin-bottom: 16px;
+    }
+
+    .controls-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+
+    .field {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .field.full {
+      grid-column: 1 / -1;
+    }
+
+    label {
+      font-size: 0.82rem;
+      font-weight: 600;
+      color: var(--muted);
+    }
+
+    input,
+    select,
+    button {
+      font: inherit;
+      padding: 9px 11px;
+      border-radius: 6px;
+      border: 1px solid var(--border);
+      background: var(--surface-alt);
+      color: var(--text);
+      width: 100%;
+    }
+
+    button.primary {
+      background: var(--accent);
+      color: var(--accent-fg);
+      border-color: var(--accent);
+      font-weight: 600;
+      cursor: pointer;
+    }
+
+    .presets {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-top: 12px;
+    }
+
+    .presets button {
+      width: auto;
+      font-size: 0.78rem;
+      padding: 5px 10px;
+      cursor: pointer;
+    }
+
+    .badge {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 4px;
+      font-size: 0.78rem;
+      font-weight: 600;
+    }
+
+    .badge.ok {
+      background: var(--ok-bg);
+      color: var(--ok-fg);
+    }
+
+    .badge.empty {
+      background: var(--warn-bg);
+      color: var(--warn-fg);
+    }
+
+    .badge.error {
+      background: var(--err-bg);
+      color: var(--err-fg);
+    }
+
+    .mono {
+      font-family: var(--mono);
+      font-size: 0.84rem;
+      overflow-wrap: anywhere;
+      word-break: break-word;
+    }
+
+    .kv-list {
+      display: grid;
+      grid-template-columns: 140px 1fr;
+      gap: 8px 12px;
+      margin: 12px 0 0 0;
+    }
+
+    .kv-key {
+      font-size: 0.82rem;
+      font-weight: 600;
+      color: var(--muted);
+    }
+
+    .kv-val {
+      overflow-wrap: anywhere;
+    }
+
+    .agent-header {
+      display: flex;
+      gap: 14px;
+      align-items: flex-start;
+      margin-bottom: 12px;
+    }
+
+    .agent-avatar {
+      width: 64px;
+      height: 64px;
+      border-radius: 8px;
+      object-fit: cover;
+      border: 1px solid var(--border);
+      background: var(--surface-alt);
+      flex-shrink: 0;
+    }
+
+    .pill-list {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      padding: 0;
+      margin: 4px 0 0 0;
+      list-style: none;
+    }
+
+    .pill {
+      background: var(--surface-alt);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      padding: 2px 8px;
+      font-size: 0.8rem;
+      font-family: var(--mono);
+    }
+
+    .endpoint-list,
+    .feedback-list {
+      list-style: none;
+      padding: 0;
+      margin: 8px 0 0 0;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .endpoint-item,
+    .feedback-item {
+      background: var(--surface-alt);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 10px;
+      overflow-wrap: anywhere;
+    }
+
+    @media (max-width: 600px) {
+      main {
+        padding: 12px;
+      }
+
+      .controls-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .kv-list {
+        grid-template-columns: 1fr;
+        gap: 2px;
+      }
+
+      .kv-val {
+        margin-bottom: 8px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <header>
+      <h1>ERC-8004 Identity Viewer</h1>
+      <p class="subtitle">Inspect on-chain agent identities, registration metadata, and reputation feedback on Base (8453) and Base Sepolia (84532).</p>
+    </header>
+
+    <section class="card" aria-label="Query Form">
+      <form id="query-form">
+        <div class="controls-grid">
+          <div class="field">
+            <label for="network-select">Network</label>
+            <select id="network-select" name="network">
+              <option value="base-sepolia">Base Sepolia (84532)</option>
+              <option value="base">Base Mainnet (8453)</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="agent-id-input">Agent ID (uint256)</label>
+            <input id="agent-id-input" name="agentId" type="text" inputmode="numeric" value="0" placeholder="e.g. 0, 1, 395884" required>
+          </div>
+          <div class="field">
+            <label for="identity-input">Identity Registry Override (optional)</label>
+            <input id="identity-input" name="identityRegistry" type="text" class="mono" placeholder="Default from selected network">
+          </div>
+          <div class="field">
+            <label for="reputation-input">Reputation Registry Override (optional)</label>
+            <input id="reputation-input" name="reputationRegistry" type="text" class="mono" placeholder="Default from selected network">
+          </div>
+          <div class="field full">
+            <button id="inspect-btn" type="submit" class="primary">Inspect Agent</button>
+          </div>
+        </div>
+      </form>
+
+      <div class="presets" aria-label="Sample Agents">
+        <button type="button" data-network="base-sepolia" data-agent="0">Base Sepolia #0 (44 Feedbacks)</button>
+        <button type="button" data-network="base-sepolia" data-agent="1">Base Sepolia #1</button>
+        <button type="button" data-network="base" data-agent="0">Base Mainnet #0 (Genesis)</button>
+        <button type="button" data-network="base" data-agent="1">Base Mainnet #1 (ClawNews)</button>
+      </div>
+    </section>
+
+    <section id="status-banner" class="card" hidden></section>
+    <section id="identity-section" class="card" hidden></section>
+    <section id="feedback-section" class="card" hidden></section>
+  </main>
+
+  <script type="module">
+    import { REGISTRIES } from "./config.js";
+    import { loadAgent, DEFAULT_IPFS_GATEWAY } from "./viewer.js";
+
+    const form = document.getElementById("query-form");
+    const networkSelect = document.getElementById("network-select");
+    const agentIdInput = document.getElementById("agent-id-input");
+    const identityInput = document.getElementById("identity-input");
+    const reputationInput = document.getElementById("reputation-input");
+    const statusBanner = document.getElementById("status-banner");
+    const identitySection = document.getElementById("identity-section");
+    const feedbackSection = document.getElementById("feedback-section");
+
+    function resolveDisplayUrl(uri) {
+      const raw = String(uri || "").trim();
+      if (!raw) return "";
+      if (raw.toLowerCase().startsWith("ipfs://")) {
+        const cid = raw.slice(7).replace(/^ipfs\//i, "").replace(/^\/+/, "");
+        return DEFAULT_IPFS_GATEWAY + cid;
+      }
+      return raw;
+    }
+
+    function updatePlaceholders() {
+      const cfg = REGISTRIES[networkSelect.value] || REGISTRIES.base;
+      identityInput.placeholder = cfg.identity;
+      reputationInput.placeholder = cfg.reputation;
+    }
+
+    function createRow(keyText, valueNodeOrText, isMono = false) {
+      const dt = document.createElement("div");
+      dt.className = "kv-key";
+      dt.textContent = keyText;
+
+      const dd = document.createElement("div");
+      dd.className = isMono ? "kv-val mono" : "kv-val";
+      if (typeof valueNodeOrText === "string") {
+        dd.textContent = valueNodeOrText;
+      } else if (valueNodeOrText instanceof Node) {
+        dd.appendChild(valueNodeOrText);
+      }
+      return [dt, dd];
+    }
+
+    function renderResult(result, network) {
+      statusBanner.hidden = false;
+      statusBanner.innerHTML = "";
+
+      const cfg = REGISTRIES[network] || REGISTRIES.base;
+      const badge = document.createElement("span");
+      badge.className = `badge ${result.status}`;
+      badge.textContent = result.status.toUpperCase();
+      statusBanner.appendChild(badge);
+
+      const summaryText = document.createElement("span");
+      summaryText.style.marginLeft = "10px";
+      summaryText.textContent = `Network: ${cfg.name} (${cfg.chainId}) | Agent ID: ${result.agentId}`;
+      statusBanner.appendChild(summaryText);
+
+      if (result.status === "empty") {
+        const msg = document.createElement("p");
+        msg.textContent = `No agent minted for ID ${result.agentId} on ${cfg.name}.`;
+        statusBanner.appendChild(msg);
+        identitySection.hidden = true;
+        feedbackSection.hidden = true;
+        return;
+      }
+
+      if (result.status === "error") {
+        const msg = document.createElement("p");
+        msg.textContent = `Error: ${result.error || "Unable to load agent"}`;
+        statusBanner.appendChild(msg);
+        if (result.owner) {
+          const ownerInfo = document.createElement("p");
+          ownerInfo.className = "mono";
+          ownerInfo.textContent = `Owner: ${result.owner}`;
+          statusBanner.appendChild(ownerInfo);
+        }
+        identitySection.hidden = true;
+        feedbackSection.hidden = true;
+        return;
+      }
+
+      // Render identity & registration
+      identitySection.hidden = false;
+      identitySection.innerHTML = "";
+
+      const reg = result.registration || {};
+      const headerDiv = document.createElement("div");
+      headerDiv.className = "agent-header";
+
+      if (reg.image) {
+        const img = document.createElement("img");
+        img.className = "agent-avatar";
+        img.alt = reg.name ? `${reg.name} avatar` : "Agent avatar";
+        img.src = resolveDisplayUrl(reg.image);
+        headerDiv.appendChild(img);
+      }
+
+      const titleWrap = document.createElement("div");
+      const h2 = document.createElement("h2");
+      h2.style.margin = "0 0 4px 0";
+      h2.style.fontSize = "1.15rem";
+      h2.textContent = reg.name || `Agent #${result.agentId}`;
+      titleWrap.appendChild(h2);
+
+      const desc = document.createElement("p");
+      desc.style.margin = "0";
+      desc.style.color = "var(--muted)";
+      desc.textContent = reg.description || "No description provided.";
+      titleWrap.appendChild(desc);
+
+      headerDiv.appendChild(titleWrap);
+      identitySection.appendChild(headerDiv);
+
+      const kv = document.createElement("div");
+      kv.className = "kv-list";
+
+      kv.append(...createRow("Owner", result.owner, true));
+      kv.append(...createRow("Token URI", result.tokenURI, true));
+      if (reg.image) {
+        kv.append(...createRow("Image URI", String(reg.image), true));
+      }
+
+      const trustItems = Array.isArray(reg.supportedTrust) ? reg.supportedTrust : [];
+      const trustList = document.createElement("ul");
+      trustList.className = "pill-list";
+      if (trustItems.length === 0) {
+        const li = document.createElement("li");
+        li.className = "pill";
+        li.textContent = "none";
+        trustList.appendChild(li);
+      } else {
+        for (const t of trustItems) {
+          const li = document.createElement("li");
+          li.className = "pill";
+          li.textContent = String(t);
+          trustList.appendChild(li);
+        }
+      }
+      kv.append(...createRow("Supported Trust", trustList, false));
+
+      const rawEndpoints = Array.isArray(reg.endpoints)
+        ? reg.endpoints
+        : Array.isArray(reg.services)
+          ? reg.services
+          : [];
+      const endpointList = document.createElement("ul");
+      endpointList.className = "endpoint-list";
+      if (rawEndpoints.length === 0) {
+        const li = document.createElement("li");
+        li.className = "endpoint-item mono";
+        li.textContent = "No endpoints listed";
+        endpointList.appendChild(li);
+      } else {
+        for (const ep of rawEndpoints) {
+          const li = document.createElement("li");
+          li.className = "endpoint-item mono";
+          if (typeof ep === "string") {
+            li.textContent = ep;
+          } else if (ep && typeof ep === "object") {
+            const name = ep.name || ep.type || "endpoint";
+            const url = ep.endpoint || ep.url || ep.uri || "";
+            const ver = ep.version ? ` (v${ep.version})` : "";
+            li.textContent = `${name}${ver}: ${url}`;
+          }
+          endpointList.appendChild(li);
+        }
+      }
+      kv.append(...createRow("Endpoints", endpointList, false));
+
+      identitySection.appendChild(kv);
+
+      // Render reputation feedback
+      feedbackSection.hidden = false;
+      feedbackSection.innerHTML = "";
+
+      const fbTitle = document.createElement("h2");
+      fbTitle.style.margin = "0 0 8px 0";
+      fbTitle.style.fontSize = "1.1rem";
+      fbTitle.textContent = "Reputation Feedback";
+      feedbackSection.appendChild(fbTitle);
+
+      const fb = result.feedback || { count: 0, average: 0, items: [] };
+      const fbSummary = document.createElement("p");
+      fbSummary.className = "mono";
+      fbSummary.textContent =
+        fb.count > 0
+          ? `Count: ${fb.count} | Average Score: ${Number(fb.average).toFixed(2)}`
+          : "Count: 0 | Average Score: 0 (No feedback entries recorded)";
+      feedbackSection.appendChild(fbSummary);
+
+      if (Array.isArray(fb.items) && fb.items.length > 0) {
+        const list = document.createElement("ul");
+        list.className = "feedback-list";
+        for (const item of fb.items) {
+          const li = document.createElement("li");
+          li.className = "feedback-item mono";
+          const tagsText =
+            Array.isArray(item.tags) && item.tags.length > 0
+              ? item.tags.join(", ")
+              : "none";
+          li.textContent = `Client: ${item.client} | Score: ${item.score} | Tags: ${tagsText}`;
+          list.appendChild(li);
+        }
+        feedbackSection.appendChild(list);
+      }
+    }
+
+    async function runQuery() {
+      const network = networkSelect.value;
+      const agentId = agentIdInput.value.trim();
+      const identityRegistry = identityInput.value.trim() || undefined;
+      const reputationRegistry = reputationInput.value.trim() || undefined;
+
+      statusBanner.hidden = false;
+      statusBanner.textContent = `Loading agent ${agentId} on ${network}...`;
+      identitySection.hidden = true;
+      feedbackSection.hidden = true;
+
+      const result = await loadAgent({
+        agentId,
+        network,
+        identityRegistry,
+        reputationRegistry,
+      });
+      renderResult(result, network);
+    }
+
+    networkSelect.addEventListener("change", updatePlaceholders);
+    form.addEventListener("submit", (event) => {
+      event.preventDefault();
+      runQuery();
+    });
+
+    for (const btn of document.querySelectorAll(".presets button")) {
+      btn.addEventListener("click", () => {
+        networkSelect.value = btn.dataset.network;
+        agentIdInput.value = btn.dataset.agent;
+        updatePlaceholders();
+        runQuery();
+      });
+    }
+
+    updatePlaceholders();
+    const params = new URLSearchParams(window.location.search);
+    if (params.has("network")) {
+      networkSelect.value = params.get("network");
+      updatePlaceholders();
+    }
+    if (params.has("agentId")) {
+      agentIdInput.value = params.get("agentId");
+      runQuery();
+    }
+  </script>
+</body>
+</html>
